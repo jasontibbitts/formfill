@@ -23,3 +23,8 @@ formfill lets you put that stuff on the command line.
 Well, currently it doesn't manipulate any kind of field beyond a text field.
 And you can probably kill it somehow.  It doesn't handle spaces or equals signs
 in field names.
+
+## What does it need?
+Python 3.  Probably 3.2 or newer, but I only have 3.4 around so that's what
+works.  It uses only modules that come with Python (zipfile, xml.dom.minidom,
+etc.).  And Libreoffice.
