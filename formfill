@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import argparse
 import sys
 import xml.dom.minidom
@@ -11,20 +10,24 @@ from tempfile import TemporaryDirectory
 dbprint = None
 qprint = None
 
+
 class WritableODFContent:
-    """ Encapsulates an opendocument file such that content can be extracted, modified, and rewritten without overwriting the original file."""
+    """Encapsulates an opendocument file.
+
+    Provides some useful methods for manupulating an opendocument file, including rewriting it.
+    """
     def __init__(self, infile):
         self.tempd = TemporaryDirectory(prefix='formfill')
         self._dirname = self.tempd.name
         self._filename = self._dirname + "/substituted"
 
-        zin = zipfile.ZipFile (infile, 'r')
+        zin = zipfile.ZipFile(infile, 'r')
 
         # Extract and parse the document
         self.doc = xml.dom.minidom.parseString(zin.read('content.xml'))
 
         # Copy all of the files _except_ content.xml
-        zout = zipfile.ZipFile (self._filename, 'w')
+        zout = zipfile.ZipFile(self._filename, 'w')
         for item in zin.infolist():
             buffer = zin.read(item.filename)
             if (item.filename != 'content.xml'):
@@ -58,6 +61,7 @@ class WritableODFContent:
         self.zip.writestr('content.xml', self.doc.toxml())
         self.zip.close()
 
+
 def parseargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', required=True, help='File to parse')
@@ -71,9 +75,11 @@ def parseargs():
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-e', '--edit', action='store_true', help='Open the substituted opendocument file')
-    group.add_argument('-n', '--dry-run', action='store_true', help="Show substitutions made but don't actually write or print anything")
+    group.add_argument('-n', '--dry-run', action='store_true',
+            help="Show substitutions made but don't actually write or print anything")
     group.add_argument('--od', '--opendocument', help='Output new opendocument file')
-    group.add_argument('-p', '--print', action='store_true', help='Print substituted file directly to the default printer')
+    group.add_argument('-p', '--print', action='store_true',
+            help='Print substituted file directly to the default printer')
     group.add_argument('--pdf', action='store_true', help='Output PDF file')
 
     args = parser.parse_args()
@@ -81,7 +87,7 @@ def parseargs():
     if args.printer and not args.print:
         parser.print_help()
         print("formfill: error: cannot specify --printer without -p/--print")
-        exit(1)
+        sys.exit(1)
 
     if args.verbose:
         def _dbprint(*dbargs):
@@ -99,7 +105,8 @@ def parseargs():
     global qprint
     qprint = _qprint
 
-    return(args)
+    return args
+
 
 def main():
     args = parseargs()
@@ -137,7 +144,7 @@ def main():
 
     if args.dry_run:
         print("Dry run; no processing done.")
-        exit(0)
+        sys.exit(0)
 
     o.writecontent()
 
@@ -148,12 +155,12 @@ def main():
         call(['libreoffice', o.filename()])
 
     if args.print:
-        call(stdargs + ['--print-to-file', o.filename()])
-        call(['lpr', '-o', 'Duplex=DuplexNoTumble', o.filename() + '.ps'])
-
-    if args.printer:
-        call(stdargs + ['libreoffice', '--headless', '--print-to-file'] + outdir + [o.filename()])
-        call(['lpr', '-p', args.printer, '-o', 'Duplex=DuplexNoTumble', o.filename() + '.ps'])
+        if args.printer:
+            call(stdargs + ['libreoffice', '--headless', '--print-to-file'] + outdir + [o.filename()])
+            call(['lpr', '-P', args.printer, '-o', 'Duplex=DuplexNoTumble', o.filename() + '.ps'])
+        else:
+            call(stdargs + ['--print-to-file', o.filename()] + outdir)
+            call(['lpr', '-o', 'Duplex=DuplexNoTumble', o.filename() + '.ps'])
 
     if args.pdf:
         pdfname = args.file.rsplit('.', 1)[0] + ".pdf"
@@ -164,5 +171,5 @@ def main():
         copyfile(o.dirname() + "/substituted.pdf", pdfname)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
